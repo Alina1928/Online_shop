@@ -1,1 +1,1 @@
-# 🛒 Online Shop 
+Online shop
