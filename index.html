@@ -1,0 +1,871 @@
+import { useState, useEffect, useRef } from “react”;
+
+// ─── In-Memory Database ───────────────────────────────────────────────────────
+const DB = {
+users: [
+{ id: 1, name: “Айгерім Қасымова”, email: “admin@beauty.kz”, password: “admin123”, role: “admin”, createdAt: “2024-01-15” },
+{ id: 2, name: “Дина Сейткали”, email: “dina@mail.kz”, password: “pass123”, role: “user”, createdAt: “2024-02-20” },
+],
+products: [
+{ id: 1, name: “Velvet Rose Помада”, category: “Ерін”, brand: “MAC”, price: 12500, stock: 45, rating: 4.8, description: “Бархат текстурасы, 24 сағат”, image: “💄”, createdAt: “2024-01-10” },
+{ id: 2, name: “Glow Serum 30ml”, category: “Күтім”, brand: “The Ordinary”, price: 8900, stock: 32, rating: 4.6, description: “Гиалурон қышқылы + Ниацинамид”, image: “✨”, createdAt: “2024-01-12” },
+{ id: 3, name: “Nude Foundation”, category: “Тренажер”, brand: “Charlotte Tilbury”, price: 24000, stock: 18, rating: 4.9, description: “Табиғи покрытие, 30 реңк”, image: “🌟”, createdAt: “2024-01-15” },
+{ id: 4, name: “Sky High Тушь”, category: “Көз”, brand: “Maybelline”, price: 5500, stock: 67, rating: 4.7, description: “Максималды ұзындық эффекті”, image: “👁”, createdAt: “2024-01-18” },
+{ id: 5, name: “Brow Definer”, category: “Қас”, brand: “Anastasia”, price: 9800, stock: 28, rating: 4.5, description: “0.9мм ультра жіңішке қалам”, image: “🪄”, createdAt: “2024-01-20” },
+{ id: 6, name: “Cloud Powder”, category: “Пудра”, brand: “Rare Beauty”, price: 15000, stock: 22, rating: 4.8, description: “Жеңіл, матталған эффект”, image: “☁️”, createdAt: “2024-01-25” },
+],
+orders: [
+{ id: 1, userId: 2, productId: 1, quantity: 2, total: 25000, status: “Жеткізілді”, date: “2024-02-01” },
+{ id: 2, userId: 2, productId: 3, quantity: 1, total: 24000, status: “Жолда”, date: “2024-02-10” },
+],
+nextUserId: 3,
+nextProductId: 7,
+nextOrderId: 3,
+};
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+const generateId = (type) => {
+const key = `next${type.charAt(0).toUpperCase() + type.slice(1)}Id`;
+return DB[key]++;
+};
+
+export default function App() {
+const [currentUser, setCurrentUser] = useState(null);
+const [page, setPage] = useState(“login”); // login | register | home | products | admin | profile | orders
+const [products, setProducts] = useState([…DB.products]);
+const [users, setUsers] = useState([…DB.users]);
+const [orders, setOrders] = useState([…DB.orders]);
+const [cart, setCart] = useState([]);
+const [toast, setToast] = useState(null);
+const [search, setSearch] = useState(””);
+const [filterCat, setFilterCat] = useState(“Барлығы”);
+
+const showToast = (msg, type = “success”) => {
+setToast({ msg, type });
+setTimeout(() => setToast(null), 3000);
+};
+
+// ─── Auth ──────────────────────────────────────────────────────────────────
+const handleLogin = (email, password) => {
+const user = DB.users.find(u => u.email === email && u.password === password);
+if (user) { setCurrentUser(user); setPage(“home”); showToast(`Қош келдіңіз, ${user.name}! 💖`); }
+else showToast(“Email немесе құпия сөз қате!”, “error”);
+};
+
+const handleRegister = (name, email, password) => {
+if (DB.users.find(u => u.email === email)) { showToast(“Бұл email тіркелген!”, “error”); return; }
+if (!/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(email)) { showToast(“Email форматы дұрыс емес!”, “error”); return; }
+if (password.length < 6) { showToast(“Құпия сөз кемінде 6 таңба!”, “error”); return; }
+const newUser = { id: generateId(“user”), name, email, password, role: “user”, createdAt: new Date().toISOString().split(“T”)[0] };
+DB.users.push(newUser);
+setUsers([…DB.users]);
+setCurrentUser(newUser);
+setPage(“home”);
+showToast(`Тіркелдіңіз! Қош келдіңіз 🌸`);
+};
+
+const handleLogout = () => { setCurrentUser(null); setPage(“login”); setCart([]); showToast(“Шықтыңыз 👋”); };
+
+// ─── Products CRUD ─────────────────────────────────────────────────────────
+const addProduct = (p) => {
+const np = { …p, id: generateId(“product”), rating: 4.5, createdAt: new Date().toISOString().split(“T”)[0] };
+DB.products.push(np);
+setProducts([…DB.products]);
+showToast(“Өнім қосылды! ✅”);
+};
+
+const updateProduct = (id, data) => {
+const idx = DB.products.findIndex(p => p.id === id);
+if (idx !== -1) { DB.products[idx] = { …DB.products[idx], …data }; setProducts([…DB.products]); showToast(“Өнім жаңартылды! ✏️”); }
+};
+
+const deleteProduct = (id) => {
+DB.products.splice(DB.products.findIndex(p => p.id === id), 1);
+setProducts([…DB.products]);
+showToast(“Өнім өшірілді! 🗑️”, “error”);
+};
+
+// ─── Cart & Orders ─────────────────────────────────────────────────────────
+const addToCart = (product) => {
+setCart(prev => {
+const exists = prev.find(i => i.id === product.id);
+if (exists) return prev.map(i => i.id === product.id ? { …i, qty: i.qty + 1 } : i);
+return […prev, { …product, qty: 1 }];
+});
+showToast(`${product.name} қоржынға қосылды! 🛒`);
+};
+
+const placeOrder = () => {
+if (!currentUser || cart.length === 0) return;
+cart.forEach(item => {
+const order = { id: generateId(“order”), userId: currentUser.id, productId: item.id, quantity: item.qty, total: item.price * item.qty, status: “Өңделуде”, date: new Date().toISOString().split(“T”)[0] };
+DB.orders.push(order);
+});
+setOrders([…DB.orders]);
+setCart([]);
+showToast(“Тапсырыс берілді! 🎉”);
+};
+
+const categories = [“Барлығы”, …new Set(DB.products.map(p => p.category))];
+const filtered = products.filter(p =>
+(filterCat === “Барлығы” || p.category === filterCat) &&
+(p.name.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase()))
+);
+
+const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+const userOrders = orders.filter(o => o.userId === currentUser?.id);
+
+return (
+<div style={{ fontFamily: “‘Georgia’, serif”, minHeight: “100vh”, background: “#fdf6f0”, color: “#1a0a00” }}>
+<style>{`
+@import url(‘https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:wght@300;400;500&display=swap’);
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+–gold: #c9a84c;
+–gold-light: #f0d080;
+–rose: #e8c4c0;
+–dark: #1a0a00;
+–cream: #fdf6f0;
+–card: #fff8f3;
+–shadow: 0 8px 40px rgba(201,168,76,0.15);
+}
+body { background: #fdf6f0; }
+.playfair { font-family: ‘Playfair Display’, Georgia, serif; }
+.cormorant { font-family: ‘Cormorant Garamond’, Georgia, serif; }
+
+```
+    .btn-gold {
+      background: linear-gradient(135deg, #c9a84c, #e8c87a, #c9a84c);
+      background-size: 200% 200%;
+      color: #1a0a00;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 2px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-gold:hover { background-position: right; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(201,168,76,0.4); }
+
+    .btn-outline {
+      background: transparent;
+      color: #c9a84c;
+      border: 1px solid #c9a84c;
+      padding: 10px 24px;
+      border-radius: 2px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-outline:hover { background: #c9a84c; color: #1a0a00; }
+
+    .btn-danger {
+      background: transparent;
+      color: #c0392b;
+      border: 1px solid #c0392b;
+      padding: 8px 18px;
+      border-radius: 2px;
+      font-size: 13px;
+      font-family: 'Cormorant Garamond', serif;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-danger:hover { background: #c0392b; color: white; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #e8d5c0;
+      border-radius: 2px;
+      background: #fffcf8;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15px;
+      color: #1a0a00;
+      outline: none;
+      transition: border 0.3s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #c9a84c; box-shadow: 0 0 0 3px rgba(201,168,76,0.1); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid #f0e0d0;
+      border-radius: 4px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 16px 50px rgba(201,168,76,0.2); }
+
+    .nav-link {
+      color: #1a0a00;
+      text-decoration: none;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 8px 4px;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .nav-link:hover, .nav-link.active { color: #c9a84c; border-bottom-color: #c9a84c; }
+
+    .badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #c9a84c, #e8c87a);
+      color: #1a0a00;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: 1px;
+    }
+
+    .ornament { color: #c9a84c; font-size: 20px; margin: 0 8px; }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0;
+      color: #c9a84c;
+      font-size: 18px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, #c9a84c, transparent);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 14px 28px;
+      border-radius: 3px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+      z-index: 9999;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+    .toast.success { background: #1a0a00; color: #f0d080; border-left: 4px solid #c9a84c; }
+    .toast.error { background: #3d0000; color: #ffb3b3; border-left: 4px solid #c0392b; }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    .star { color: #c9a84c; }
+    .tag {
+      display: inline-block;
+      background: #f5e6d0;
+      color: #8b5e3c;
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 2px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(26,10,0,0.7);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s;
+    }
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #fdf6f0; }
+    ::-webkit-scrollbar-thumb { background: #c9a84c; border-radius: 3px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #1a0a00; color: #f0d080; font-family: 'Cormorant Garamond', serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 14px 16px; text-align: left; font-weight: 400; }
+    td { padding: 14px 16px; border-bottom: 1px solid #f0e0d0; font-family: 'Cormorant Garamond', serif; font-size: 15px; }
+    tr:hover td { background: #fff8f0; }
+  `}</style>
+
+  {/* Toast */}
+  {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
+
+  {/* ─── AUTH PAGES ─── */}
+  {!currentUser && <AuthPages onLogin={handleLogin} onRegister={handleRegister} page={page} setPage={setPage} />}
+
+  {/* ─── MAIN APP ─── */}
+  {currentUser && (
+    <>
+      <Navbar currentUser={currentUser} page={page} setPage={setPage} cart={cart} onLogout={handleLogout} />
+
+      {page === "home" && <HomePage products={products} onAddToCart={addToCart} setPage={setPage} />}
+      {page === "products" && (
+        <ProductsPage
+          products={filtered} categories={categories} search={search} setSearch={setSearch}
+          filterCat={filterCat} setFilterCat={setFilterCat} onAddToCart={addToCart}
+        />
+      )}
+      {page === "cart" && <CartPage cart={cart} setCart={setCart} onOrder={placeOrder} cartTotal={cartTotal} />}
+      {page === "orders" && <OrdersPage orders={userOrders} products={products} />}
+      {page === "profile" && <ProfilePage user={currentUser} orders={userOrders} />}
+      {page === "admin" && currentUser.role === "admin" && (
+        <AdminPage products={products} users={users} orders={orders} onAdd={addProduct} onUpdate={updateProduct} onDelete={deleteProduct} />
+      )}
+    </>
+  )}
+</div>
+```
+
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTH PAGES
+// ═══════════════════════════════════════════════════════════════════
+function AuthPages({ onLogin, onRegister, page, setPage }) {
+const [form, setForm] = useState({ name: “”, email: “”, password: “” });
+const isLogin = page === “login”;
+
+const handleSubmit = () => {
+if (isLogin) onLogin(form.email, form.password);
+else {
+if (!form.name.trim()) return;
+onRegister(form.name, form.email, form.password);
+}
+};
+
+return (
+<div style={{ minHeight: “100vh”, display: “flex”, alignItems: “center”, justifyContent: “center”, background: “linear-gradient(135deg, #fdf6f0 0%, #f5e6d0 50%, #fdf6f0 100%)”, position: “relative”, overflow: “hidden” }}>
+{/* Decorative bg */}
+<div style={{ position: “absolute”, inset: 0, backgroundImage: “radial-gradient(circle at 20% 50%, rgba(201,168,76,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(232,196,192,0.15) 0%, transparent 50%)”, pointerEvents: “none” }} />
+
+```
+  <div style={{ width: 420, padding: "48px 40px", background: "rgba(255,252,248,0.95)", border: "1px solid #e8d5c0", boxShadow: "0 30px 80px rgba(201,168,76,0.2)", position: "relative" }}>
+    {/* Corner ornaments */}
+    <div style={{ position: "absolute", top: 12, left: 12, color: "#c9a84c", fontSize: 18, lineHeight: 1 }}>✦</div>
+    <div style={{ position: "absolute", top: 12, right: 12, color: "#c9a84c", fontSize: 18, lineHeight: 1 }}>✦</div>
+    <div style={{ position: "absolute", bottom: 12, left: 12, color: "#c9a84c", fontSize: 18, lineHeight: 1 }}>✦</div>
+    <div style={{ position: "absolute", bottom: 12, right: 12, color: "#c9a84c", fontSize: 18, lineHeight: 1 }}>✦</div>
+
+    <div style={{ textAlign: "center", marginBottom: 32 }}>
+      <div style={{ fontSize: 40, marginBottom: 8 }}>🍎</div>
+      <h1 className="playfair" style={{ fontSize: 28, letterSpacing: 2, color: "#1a0a00", fontStyle: "italic" }}>Алтын Алма</h1>
+      <p className="cormorant" style={{ color: "#8b6e52", letterSpacing: 3, fontSize: 11, textTransform: "uppercase", marginTop: 4 }}>Beauty & Cosmetics</p>
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 8, color: "#c9a84c" }}>— ✦ —</div>
+    </div>
+
+    <div style={{ display: "flex", gap: 0, marginBottom: 28, border: "1px solid #e8d5c0", borderRadius: 2, overflow: "hidden" }}>
+      {["login", "register"].map(t => (
+        <button key={t} onClick={() => setPage(t)} style={{ flex: 1, padding: "10px", background: page === t ? "#1a0a00" : "transparent", color: page === t ? "#f0d080" : "#8b6e52", border: "none", fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", transition: "all 0.3s" }}>
+          {t === "login" ? "Кіру" : "Тіркелу"}
+        </button>
+      ))}
+    </div>
+
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {!isLogin && (
+        <div>
+          <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 6 }}>Аты-жөні</label>
+          <input placeholder="Атыңызды енгізіңіз" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+        </div>
+      )}
+      <div>
+        <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 6 }}>Email</label>
+        <input type="email" placeholder="email@example.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+      </div>
+      <div>
+        <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 6 }}>Құпия сөз</label>
+        <input type="password" placeholder="••••••••" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+      </div>
+      <button className="btn-gold" onClick={handleSubmit} style={{ marginTop: 8, width: "100%", padding: "14px" }}>
+        {isLogin ? "Кіру" : "Тіркелу"}
+      </button>
+    </div>
+
+    {isLogin && (
+      <p className="cormorant" style={{ textAlign: "center", marginTop: 20, color: "#8b6e52", fontSize: 14 }}>
+        Admin: <strong>admin@beauty.kz</strong> / <strong>admin123</strong>
+      </p>
+    )}
+  </div>
+</div>
+```
+
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NAVBAR
+// ═══════════════════════════════════════════════════════════════════
+function Navbar({ currentUser, page, setPage, cart, onLogout }) {
+const [menuOpen, setMenuOpen] = useState(false);
+const cartCount = cart.reduce((s, i) => s + i.qty, 0);
+
+const links = [
+{ key: “home”, label: “Басты” },
+{ key: “products”, label: “Өнімдер” },
+{ key: “orders”, label: “Тапсырыстар” },
+{ key: “profile”, label: “Профиль” },
+…(currentUser.role === “admin” ? [{ key: “admin”, label: “Админ” }] : []),
+];
+
+return (
+<nav style={{ background: “#1a0a00”, borderBottom: “1px solid #c9a84c33”, position: “sticky”, top: 0, zIndex: 100 }}>
+<div style={{ maxWidth: 1200, margin: “0 auto”, padding: “0 24px”, height: 64, display: “flex”, alignItems: “center”, justifyContent: “space-between” }}>
+<div style={{ display: “flex”, alignItems: “center”, gap: 8, cursor: “pointer” }} onClick={() => setPage(“home”)}>
+<span style={{ fontSize: 24 }}>🍎</span>
+<span className=“playfair” style={{ color: “#f0d080”, fontSize: 22, fontStyle: “italic”, letterSpacing: 1 }}>Алтын Алма</span>
+</div>
+
+```
+    <div style={{ display: "flex", gap: 28 }}>
+      {links.map(l => (
+        <span key={l.key} className={`nav-link ${page === l.key ? "active" : ""}`} onClick={() => setPage(l.key)}
+          style={{ color: page === l.key ? "#f0d080" : "#d4b896" }}>
+          {l.label}
+        </span>
+      ))}
+    </div>
+
+    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <button onClick={() => setPage("cart")} style={{ background: "transparent", border: "1px solid #c9a84c44", color: "#f0d080", padding: "8px 16px", borderRadius: 2, fontFamily: "'Cormorant Garamond', serif", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        🛒 {cartCount > 0 && <span style={{ background: "#c9a84c", color: "#1a0a00", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{cartCount}</span>}
+      </button>
+      <button onClick={onLogout} className="btn-outline" style={{ padding: "8px 16px", fontSize: 12 }}>Шығу</button>
+    </div>
+  </div>
+</nav>
+```
+
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HOME PAGE
+// ═══════════════════════════════════════════════════════════════════
+function HomePage({ products, onAddToCart, setPage }) {
+const featured = products.slice(0, 3);
+
+return (
+<div>
+{/* Hero */}
+<div style={{ background: “linear-gradient(135deg, #1a0a00 0%, #2d1500 50%, #1a0a00 100%)”, padding: “80px 24px”, textAlign: “center”, position: “relative”, overflow: “hidden” }}>
+<div style={{ position: “absolute”, inset: 0, backgroundImage: “radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.15) 0%, transparent 70%)”, pointerEvents: “none” }} />
+<div style={{ fontSize: 48, marginBottom: 16 }}>🍎</div>
+<h1 className=“playfair” style={{ color: “#f0d080”, fontSize: 52, fontStyle: “italic”, letterSpacing: 3, marginBottom: 16, lineHeight: 1.2 }}>
+Сұлулық — бұл өнер
+</h1>
+<p className=“cormorant” style={{ color: “#c9a84c”, fontSize: 18, letterSpacing: 4, textTransform: “uppercase”, marginBottom: 32 }}>
+Премиум косметика дүкені
+</p>
+<div style={{ display: “flex”, gap: 8, justifyContent: “center”, color: “#c9a84c”, fontSize: 20, marginBottom: 40 }}>
+✦ ✦ ✦
+</div>
+<button className=“btn-gold” style={{ fontSize: 14, padding: “16px 48px”, letterSpacing: 3 }} onClick={() => setPage(“products”)}>
+Каталогты ашу
+</button>
+</div>
+
+```
+  {/* Stats */}
+  <div style={{ background: "#c9a84c", padding: "24px", textAlign: "center" }}>
+    <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", justifyContent: "space-around" }}>
+      {[["500+", "Өнім"], ["50K+", "Клиент"], ["100%", "Сапа"], ["2 күн", "Жеткізу"]].map(([v, l]) => (
+        <div key={l}>
+          <div className="playfair" style={{ fontSize: 26, fontStyle: "italic", color: "#1a0a00" }}>{v}</div>
+          <div className="cormorant" style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: "#5d3a00" }}>{l}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* Featured */}
+  <div style={{ maxWidth: 1200, margin: "60px auto", padding: "0 24px" }}>
+    <div style={{ textAlign: "center", marginBottom: 40 }}>
+      <p className="cormorant" style={{ color: "#c9a84c", letterSpacing: 4, fontSize: 12, textTransform: "uppercase" }}>Таңдаулы өнімдер</p>
+      <h2 className="playfair" style={{ fontSize: 36, fontStyle: "italic", marginTop: 8 }}>Bestsellers</h2>
+      <div className="divider">✦</div>
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+      {featured.map(p => <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} />)}
+    </div>
+    <div style={{ textAlign: "center", marginTop: 40 }}>
+      <button className="btn-outline" onClick={() => setPage("products")}>Барлық өнімдерді көру</button>
+    </div>
+  </div>
+</div>
+```
+
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PRODUCT CARD
+// ═══════════════════════════════════════════════════════════════════
+function ProductCard({ product, onAddToCart }) {
+return (
+<div className=“card” style={{ padding: “28px 24px”, textAlign: “center” }}>
+<div style={{ fontSize: 52, marginBottom: 12 }}>{product.image}</div>
+<span className="tag">{product.category}</span>
+<h3 className=“playfair” style={{ fontSize: 18, fontStyle: “italic”, margin: “10px 0 4px” }}>{product.name}</h3>
+<p className=“cormorant” style={{ color: “#8b6e52”, fontSize: 13, letterSpacing: 2, textTransform: “uppercase”, marginBottom: 8 }}>{product.brand}</p>
+<p className=“cormorant” style={{ color: “#6b5040”, fontSize: 14, marginBottom: 12 }}>{product.description}</p>
+<div style={{ display: “flex”, justifyContent: “center”, gap: 2, marginBottom: 12 }}>
+{“★★★★★”.split(””).map((s, i) => <span key={i} className=“star” style={{ opacity: i < Math.round(product.rating) ? 1 : 0.25 }}>{s}</span>)}
+<span className=“cormorant” style={{ marginLeft: 6, color: “#8b6e52”, fontSize: 14 }}>{product.rating}</span>
+</div>
+<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “center”, marginTop: 16 }}>
+<span className=“playfair” style={{ fontSize: 20, color: “#c9a84c”, fontStyle: “italic” }}>{product.price.toLocaleString()} ₸</span>
+<button className=“btn-gold” style={{ padding: “8px 18px”, fontSize: 12 }} onClick={() => onAddToCart(product)}>+ Қосу</button>
+</div>
+</div>
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PRODUCTS PAGE
+// ═══════════════════════════════════════════════════════════════════
+function ProductsPage({ products, categories, search, setSearch, filterCat, setFilterCat, onAddToCart }) {
+return (
+<div style={{ maxWidth: 1200, margin: “0 auto”, padding: “48px 24px” }}>
+<div style={{ textAlign: “center”, marginBottom: 40 }}>
+<p className=“cormorant” style={{ color: “#c9a84c”, letterSpacing: 4, fontSize: 12, textTransform: “uppercase” }}>Каталог</p>
+<h2 className=“playfair” style={{ fontSize: 36, fontStyle: “italic” }}>Барлық өнімдер</h2>
+<div className="divider">✦</div>
+</div>
+
+```
+  {/* Filters */}
+  <div style={{ display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap", alignItems: "center" }}>
+    <input placeholder="🔍 Іздеу..." value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, minWidth: 220 }} />
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {categories.map(c => (
+        <button key={c} onClick={() => setFilterCat(c)} style={{ padding: "8px 16px", borderRadius: 2, border: "1px solid #c9a84c", background: filterCat === c ? "#1a0a00" : "transparent", color: filterCat === c ? "#f0d080" : "#8b6e52", fontFamily: "'Cormorant Garamond', serif", fontSize: 12, letterSpacing: 1, cursor: "pointer", transition: "all 0.3s" }}>
+          {c}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 24 }}>
+    {products.length === 0
+      ? <p className="cormorant" style={{ color: "#8b6e52", gridColumn: "1/-1", textAlign: "center", fontSize: 18, padding: "60px 0" }}>Өнім табылмады...</p>
+      : products.map(p => <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} />)
+    }
+  </div>
+</div>
+```
+
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CART PAGE
+// ═══════════════════════════════════════════════════════════════════
+function CartPage({ cart, setCart, onOrder, cartTotal }) {
+const remove = (id) => setCart(prev => prev.filter(i => i.id !== id));
+const change = (id, qty) => setCart(prev => prev.map(i => i.id === id ? { …i, qty: Math.max(1, qty) } : i));
+
+return (
+<div style={{ maxWidth: 900, margin: “0 auto”, padding: “48px 24px” }}>
+<div style={{ textAlign: “center”, marginBottom: 40 }}>
+<h2 className=“playfair” style={{ fontSize: 36, fontStyle: “italic” }}>🛒 Қоржын</h2>
+<div className="divider">✦</div>
+</div>
+
+```
+  {cart.length === 0
+    ? <div style={{ textAlign: "center", padding: "80px 0" }}>
+      <div style={{ fontSize: 60, marginBottom: 16 }}>🛒</div>
+      <p className="cormorant" style={{ color: "#8b6e52", fontSize: 20 }}>Қоржын бос</p>
+    </div>
+    : <>
+      <div className="card" style={{ overflow: "hidden", marginBottom: 24 }}>
+        <table>
+          <thead><tr><th>Өнім</th><th>Баға</th><th>Саны</th><th>Жиыны</th><th></th></tr></thead>
+          <tbody>
+            {cart.map(item => (
+              <tr key={item.id}>
+                <td><span style={{ fontSize: 24, marginRight: 10 }}>{item.image}</span>{item.name}</td>
+                <td className="playfair" style={{ color: "#c9a84c", fontStyle: "italic" }}>{item.price.toLocaleString()} ₸</td>
+                <td><input type="number" value={item.qty} min={1} onChange={e => change(item.id, +e.target.value)} style={{ width: 70 }} /></td>
+                <td className="playfair" style={{ color: "#c9a84c", fontStyle: "italic" }}>{(item.price * item.qty).toLocaleString()} ₸</td>
+                <td><button className="btn-danger" onClick={() => remove(item.id)}>✕</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ textAlign: "right" }}>
+        <p className="playfair" style={{ fontSize: 24, fontStyle: "italic", marginBottom: 16 }}>
+          Жиыны: <span style={{ color: "#c9a84c" }}>{cartTotal.toLocaleString()} ₸</span>
+        </p>
+        <button className="btn-gold" style={{ padding: "14px 48px" }} onClick={onOrder}>Тапсырыс беру</button>
+      </div>
+    </>
+  }
+</div>
+```
+
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ORDERS PAGE
+// ═══════════════════════════════════════════════════════════════════
+function OrdersPage({ orders, products }) {
+const getProduct = (id) => products.find(p => p.id === id);
+const statusColor = { “Жеткізілді”: “#27ae60”, “Жолда”: “#c9a84c”, “Өңделуде”: “#8b6e52” };
+
+return (
+<div style={{ maxWidth: 900, margin: “0 auto”, padding: “48px 24px” }}>
+<div style={{ textAlign: “center”, marginBottom: 40 }}>
+<h2 className=“playfair” style={{ fontSize: 36, fontStyle: “italic” }}>Тапсырыстарым</h2>
+<div className="divider">✦</div>
+</div>
+
+```
+  {orders.length === 0
+    ? <div style={{ textAlign: "center", padding: "80px 0" }}>
+      <div style={{ fontSize: 60, marginBottom: 16 }}>📦</div>
+      <p className="cormorant" style={{ color: "#8b6e52", fontSize: 20 }}>Тапсырыс жоқ</p>
+    </div>
+    : <div className="card" style={{ overflow: "hidden" }}>
+      <table>
+        <thead><tr><th>№</th><th>Өнім</th><th>Саны</th><th>Жиыны</th><th>Күні</th><th>Мәртебе</th></tr></thead>
+        <tbody>
+          {orders.map(o => {
+            const p = getProduct(o.productId);
+            return (
+              <tr key={o.id}>
+                <td style={{ color: "#c9a84c" }}>#{o.id}</td>
+                <td>{p ? <><span style={{ fontSize: 20, marginRight: 8 }}>{p.image}</span>{p.name}</> : "—"}</td>
+                <td>{o.quantity}</td>
+                <td className="playfair" style={{ color: "#c9a84c", fontStyle: "italic" }}>{o.total.toLocaleString()} ₸</td>
+                <td style={{ color: "#8b6e52" }}>{o.date}</td>
+                <td><span style={{ color: statusColor[o.status] || "#8b6e52", fontWeight: 600 }}>● {o.status}</span></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+```
+
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PROFILE PAGE
+// ═══════════════════════════════════════════════════════════════════
+function ProfilePage({ user, orders }) {
+return (
+<div style={{ maxWidth: 700, margin: “0 auto”, padding: “48px 24px” }}>
+<div style={{ textAlign: “center”, marginBottom: 40 }}>
+<h2 className=“playfair” style={{ fontSize: 36, fontStyle: “italic” }}>Профиль</h2>
+<div className="divider">✦</div>
+</div>
+
+```
+  <div className="card" style={{ padding: 40, textAlign: "center" }}>
+    <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, #c9a84c, #e8c87a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 20px", border: "3px solid #f0d080" }}>
+      {user.name[0]}
+    </div>
+    <h3 className="playfair" style={{ fontSize: 24, fontStyle: "italic" }}>{user.name}</h3>
+    <p className="cormorant" style={{ color: "#8b6e52", letterSpacing: 2, fontSize: 13, textTransform: "uppercase", marginTop: 4 }}>{user.email}</p>
+    {user.role === "admin" && <span className="badge" style={{ marginTop: 10, display: "inline-block" }}>ADMIN</span>}
+
+    <div className="divider" style={{ margin: "24px 0" }}>✦</div>
+
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+      {[["Тапсырыстар", orders.length], ["Мүше күні", user.createdAt], ["Статус", user.role === "admin" ? "VIP" : "Member"]].map(([l, v]) => (
+        <div key={l} style={{ background: "#fdf6f0", padding: "16px", border: "1px solid #f0e0d0" }}>
+          <div className="playfair" style={{ fontSize: 22, color: "#c9a84c", fontStyle: "italic" }}>{v}</div>
+          <div className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", marginTop: 4 }}>{l}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+```
+
+);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ADMIN PAGE
+// ═══════════════════════════════════════════════════════════════════
+function AdminPage({ products, users, orders, onAdd, onUpdate, onDelete }) {
+const [tab, setTab] = useState(“products”);
+const [showModal, setShowModal] = useState(false);
+const [editProduct, setEditProduct] = useState(null);
+const [form, setForm] = useState({ name: “”, category: “”, brand: “”, price: “”, stock: “”, description: “”, image: “💄” });
+
+const openAdd = () => { setEditProduct(null); setForm({ name: “”, category: “”, brand: “”, price: “”, stock: “”, description: “”, image: “💄” }); setShowModal(true); };
+const openEdit = (p) => { setEditProduct(p); setForm({ …p }); setShowModal(true); };
+
+const handleSave = () => {
+if (!form.name || !form.price) return;
+const data = { …form, price: +form.price, stock: +form.stock };
+if (editProduct) onUpdate(editProduct.id, data);
+else onAdd(data);
+setShowModal(false);
+};
+
+const emojis = [“💄”, “✨”, “🌟”, “👁”, “🪄”, “☁️”, “🌸”, “💅”, “🧴”, “💋”, “🪷”, “🌺”];
+
+return (
+<div style={{ maxWidth: 1200, margin: “0 auto”, padding: “48px 24px” }}>
+<div style={{ textAlign: “center”, marginBottom: 40 }}>
+<h2 className=“playfair” style={{ fontSize: 36, fontStyle: “italic” }}>Админ панель</h2>
+<div className="divider">✦</div>
+</div>
+
+```
+  {/* Tabs */}
+  <div style={{ display: "flex", gap: 0, marginBottom: 32, border: "1px solid #c9a84c44", borderRadius: 2, overflow: "hidden", width: "fit-content" }}>
+    {[["products", "Өнімдер"], ["users", "Пайдаланушылар"], ["orders", "Тапсырыстар"]].map(([k, l]) => (
+      <button key={k} onClick={() => setTab(k)} style={{ padding: "12px 24px", background: tab === k ? "#1a0a00" : "transparent", color: tab === k ? "#f0d080" : "#8b6e52", border: "none", fontFamily: "'Cormorant Garamond', serif", fontSize: 13, letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", transition: "all 0.3s" }}>
+        {l}
+      </button>
+    ))}
+  </div>
+
+  {/* Products Tab */}
+  {tab === "products" && (
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
+        <button className="btn-gold" onClick={openAdd}>+ Өнім қосу</button>
+      </div>
+      <div className="card" style={{ overflow: "hidden" }}>
+        <table>
+          <thead><tr><th>Өнім</th><th>Санат</th><th>Бренд</th><th>Баға</th><th>Қор</th><th>Рейтинг</th><th>Әрекет</th></tr></thead>
+          <tbody>
+            {products.map(p => (
+              <tr key={p.id}>
+                <td><span style={{ fontSize: 20, marginRight: 8 }}>{p.image}</span>{p.name}</td>
+                <td><span className="tag">{p.category}</span></td>
+                <td style={{ color: "#8b6e52" }}>{p.brand}</td>
+                <td className="playfair" style={{ color: "#c9a84c", fontStyle: "italic" }}>{p.price.toLocaleString()} ₸</td>
+                <td>{p.stock}</td>
+                <td><span className="star">★</span> {p.rating}</td>
+                <td style={{ display: "flex", gap: 8 }}>
+                  <button className="btn-outline" style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => openEdit(p)}>Өзгерту</button>
+                  <button className="btn-danger" onClick={() => onDelete(p.id)}>Өшіру</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
+
+  {/* Users Tab */}
+  {tab === "users" && (
+    <div className="card" style={{ overflow: "hidden" }}>
+      <table>
+        <thead><tr><th>ID</th><th>Аты-жөні</th><th>Email</th><th>Рөл</th><th>Тіркелген</th></tr></thead>
+        <tbody>
+          {users.map(u => (
+            <tr key={u.id}>
+              <td style={{ color: "#c9a84c" }}>#{u.id}</td>
+              <td className="playfair" style={{ fontStyle: "italic" }}>{u.name}</td>
+              <td style={{ color: "#8b6e52" }}>{u.email}</td>
+              <td><span className="badge" style={{ background: u.role === "admin" ? "#1a0a00" : "#f5e6d0", color: u.role === "admin" ? "#f0d080" : "#8b5e3c" }}>{u.role === "admin" ? "ADMIN" : "USER"}</span></td>
+              <td style={{ color: "#8b6e52" }}>{u.createdAt}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+
+  {/* Orders Tab */}
+  {tab === "orders" && (
+    <div className="card" style={{ overflow: "hidden" }}>
+      <table>
+        <thead><tr><th>№</th><th>Пайдаланушы ID</th><th>Өнім ID</th><th>Саны</th><th>Жиыны</th><th>Мәртебе</th><th>Күні</th></tr></thead>
+        <tbody>
+          {orders.map(o => (
+            <tr key={o.id}>
+              <td style={{ color: "#c9a84c" }}>#{o.id}</td>
+              <td>User #{o.userId}</td>
+              <td>Product #{o.productId}</td>
+              <td>{o.quantity}</td>
+              <td className="playfair" style={{ color: "#c9a84c", fontStyle: "italic" }}>{o.total.toLocaleString()} ₸</td>
+              <td style={{ color: o.status === "Жеткізілді" ? "#27ae60" : "#c9a84c" }}>● {o.status}</td>
+              <td style={{ color: "#8b6e52" }}>{o.date}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+
+  {/* Modal */}
+  {showModal && (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+      <div style={{ background: "#fffcf8", width: 520, padding: "40px", border: "1px solid #e8d5c0", boxShadow: "0 40px 100px rgba(0,0,0,0.3)", position: "relative", maxHeight: "90vh", overflowY: "auto" }}>
+        <button onClick={() => setShowModal(false)} style={{ position: "absolute", top: 16, right: 16, background: "transparent", border: "none", fontSize: 20, cursor: "pointer", color: "#8b6e52" }}>✕</button>
+        <h3 className="playfair" style={{ fontSize: 22, fontStyle: "italic", marginBottom: 24 }}>{editProduct ? "Өнімді өзгерту" : "Жаңа өнім"}</h3>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 6 }}>Атауы *</label>
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Өнімнің атауы" />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 6 }}>Санат</label>
+              <input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Ерін, Күтім..." />
+            </div>
+            <div>
+              <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 6 }}>Бренд</label>
+              <input value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} placeholder="MAC, L'Oreal..." />
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 6 }}>Баға (₸) *</label>
+              <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="12500" />
+            </div>
+            <div>
+              <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 6 }}>Қор</label>
+              <input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} placeholder="50" />
+            </div>
+          </div>
+          <div>
+            <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 6 }}>Сипаттама</label>
+            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Өнім туралы..." rows={3} />
+          </div>
+          <div>
+            <label className="cormorant" style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8b6e52", display: "block", marginBottom: 8 }}>Иконка</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {emojis.map(e => (
+                <button key={e} onClick={() => setForm({ ...form, image: e })} style={{ fontSize: 22, padding: 8, background: form.image === e ? "#c9a84c22" : "transparent", border: form.image === e ? "2px solid #c9a84c" : "1px solid #e8d5c0", borderRadius: 4, cursor: "pointer" }}>{e}</button>
+              ))}
+            </div>
+          </div>
+          <button className="btn-gold" onClick={handleSave} style={{ width: "100%", padding: "14px", marginTop: 8 }}>
+            {editProduct ? "Сақтау" : "Қосу"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+```
+
+);
+}
