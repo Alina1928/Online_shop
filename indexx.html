@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍎 Алтын Алма — Beauty Shop</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Cormorant+Garamond:wght@300;400;500&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--gold:#c9a84c;--dark:#1a0a00;--cream:#fdf6f0;--rose:#f5e6d0}
+  body{font-family:'Cormorant Garamond',Georgia,serif;background:#fdf6f0;color:#1a0a00;min-height:100vh}
+  .playfair{font-family:'Playfair Display',Georgia,serif}
+  input,select,textarea{width:100%;padding:12px 16px;border:1px solid #e8d5c0;border-radius:2px;background:#fffcf8;font-family:'Cormorant Garamond',serif;font-size:15px;color:#1a0a00;outline:none;transition:border .3s;box-sizing:border-box}
+  input:focus,select:focus{border-color:#c9a84c;box-shadow:0 0 0 3px rgba(201,168,76,.1)}
+  .btn{background:linear-gradient(135deg,#c9a84c,#e8c87a,#c9a84c);color:#1a0a00;border:none;padding:12px 28px;border-radius:2px;font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .3s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(201,168,76,.4)}
+  .btn-out{background:transparent;color:#c9a84c;border:1px solid #c9a84c;padding:8px 20px;border-radius:2px;font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .3s}
+  .btn-out:hover{background:#c9a84c;color:#1a0a00}
+  .btn-danger{background:transparent;color:#c0392b;border:1px solid #c0392b;padding:7px 14px;border-radius:2px;font-size:13px;font-family:'Cormorant Garamond',serif;cursor:pointer;transition:all .3s}
+  .btn-danger:hover{background:#c0392b;color:#fff}
+  .card{background:#fff8f3;border:1px solid #f0e0d0;border-radius:4px;box-shadow:0 8px 40px rgba(201,168,76,.12);transition:all .3s}
+  .card:hover{transform:translateY(-4px);box-shadow:0 16px 50px rgba(201,168,76,.2)}
+  .tag{display:inline-block;background:#f5e6d0;color:#8b5e3c;font-size:11px;padding:3px 10px;border-radius:2px;letter-spacing:1px;text-transform:uppercase}
+  .badge{display:inline-block;background:linear-gradient(135deg,#c9a84c,#e8c87a);color:#1a0a00;font-size:10px;padding:2px 8px;border-radius:10px;letter-spacing:1px}
+  .star{color:#c9a84c}
+  nav{background:#1a0a00;position:sticky;top:0;z-index:100;border-bottom:1px solid #c9a84c33}
+  .nav-inner{max-width:1100px;margin:0 auto;padding:0 24px;height:62px;display:flex;align-items:center;justify-content:space-between}
+  .nav-logo{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .nav-links{display:flex;gap:24px}
+  .nav-link{color:#d4b896;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;padding:4px 0;transition:all .3s}
+  .nav-link:hover,.nav-link.active{color:#f0d080;border-bottom-color:#c9a84c}
+  .nav-right{display:flex;align-items:center;gap:12px}
+  .cart-btn{background:transparent;border:1px solid #c9a84c44;color:#f0d080;padding:7px 14px;border-radius:2px;font-family:'Cormorant Garamond',serif;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .cart-count{background:#c9a84c;color:#1a0a00;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+  .page{display:none;max-width:1100px;margin:0 auto;padding:40px 24px}
+  .page.active{display:block}
+  .divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#c9a84c}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:linear-gradient(to right,transparent,#c9a84c,transparent)}
+  table{width:100%;border-collapse:collapse}
+  th{background:#1a0a00;color:#f0d080;font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:13px 16px;text-align:left;font-weight:400}
+  td{padding:13px 16px;border-bottom:1px solid #f0e0d0;font-size:15px}
+  tr:hover td{background:#fff8f0}
+  .toast{position:fixed;bottom:28px;right:28px;padding:13px 26px;border-radius:3px;font-size:15px;z-index:9999;animation:slideIn .3s;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+  .toast.ok{background:#1a0a00;color:#f0d080;border-left:4px solid #c9a84c}
+  .toast.err{background:#3d0000;color:#ffb3b3;border-left:4px solid #c0392b}
+  @keyframes slideIn{from{transform:translateX(80px);opacity:0}to{transform:translateX(0);opacity:1}}
+  .modal{position:fixed;inset:0;background:rgba(26,10,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000}
+  .modal-box{background:#fffcf8;width:500px;max-width:95vw;padding:38px;border:1px solid #e8d5c0;box-shadow:0 40px 100px rgba(0,0,0,.3);position:relative;max-height:90vh;overflow-y:auto}
+  .hero{background:linear-gradient(135deg,#1a0a00,#2d1500,#1a0a00);padding:80px 24px;text-align:center;position:relative;overflow:hidden}
+  .hero-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.15) 0%,transparent 70%);pointer-events:none}
+  .products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:22px}
+  .product-card{padding:26px 22px;text-align:center}
+  label{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b6e52;margin-bottom:6px}
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-thumb{background:#c9a84c;border-radius:3px}
+  .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fdf6f0,#f5e6d0,#fdf6f0)}
+  .auth-box{width:400px;padding:46px 38px;background:rgba(255,252,248,.97);border:1px solid #e8d5c0;box-shadow:0 30px 80px rgba(201,168,76,.2);position:relative}
+  .corner{position:absolute;color:#c9a84c;font-size:16px}
+  .stats-bar{background:#c9a84c;padding:20px}
+  .stats-inner{max-width:800px;margin:0 auto;display:flex;justify-content:space-around}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+
+<nav id="navbar" style="display:none">
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="goPage('home')">
+      <span style="font-size:22px">🍎</span>
+      <span class="playfair" style="color:#f0d080;font-size:20px;font-style:italic;letter-spacing:1px">Алтын Алма</span>
+    </div>
+    <div class="nav-links">
+      <span class="nav-link" onclick="goPage('home')" id="nl-home">Басты</span>
+      <span class="nav-link" onclick="goPage('products')" id="nl-products">Өнімдер</span>
+      <span class="nav-link" onclick="goPage('orders')" id="nl-orders">Тапсырыстар</span>
+      <span class="nav-link" onclick="goPage('profile')" id="nl-profile">Профиль</span>
+      <span class="nav-link" id="nl-admin" onclick="goPage('admin')" style="display:none">Админ</span>
+    </div>
+    <div class="nav-right">
+      <button class="cart-btn" onclick="goPage('cart')">🛒 <span id="cart-count" class="cart-count" style="display:none">0</span></button>
+      <button class="btn-out" style="padding:7px 14px;font-size:11px" onclick="logout()">Шығу</button>
+    </div>
+  </div>
+</nav>
+
+<!-- AUTH PAGE -->
+
+<div id="auth-page" class="auth-wrap">
+  <div class="auth-box">
+    <div class="corner" style="top:12px;left:12px">✦</div>
+    <div class="corner" style="top:12px;right:12px">✦</div>
+    <div class="corner" style="bottom:12px;left:12px">✦</div>
+    <div class="corner" style="bottom:12px;right:12px">✦</div>
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:38px;margin-bottom:8px">🍎</div>
+      <h1 class="playfair" style="font-size:26px;font-style:italic;letter-spacing:2px">Алтын Алма</h1>
+      <p style="color:#8b6e52;letter-spacing:3px;font-size:11px;text-transform:uppercase;margin-top:4px">Beauty & Cosmetics</p>
+      <div style="color:#c9a84c;margin-top:8px">— ✦ —</div>
+    </div>
+    <div style="display:flex;border:1px solid #e8d5c0;border-radius:2px;overflow:hidden;margin-bottom:24px">
+      <button id="tab-login" onclick="switchTab('login')" style="flex:1;padding:10px;background:#1a0a00;color:#f0d080;border:none;font-family:'Cormorant Garamond',serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Кіру</button>
+      <button id="tab-register" onclick="switchTab('register')" style="flex:1;padding:10px;background:transparent;color:#8b6e52;border:none;font-family:'Cormorant Garamond',serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Тіркелу</button>
+    </div>
+    <div id="form-name" style="display:none;margin-bottom:14px">
+      <label>Аты-жөні</label>
+      <input id="inp-name" placeholder="Атыңызды енгізіңіз">
+    </div>
+    <div style="margin-bottom:14px">
+      <label>Email</label>
+      <input id="inp-email" type="email" placeholder="email@example.com">
+    </div>
+    <div style="margin-bottom:20px">
+      <label>Құпия сөз</label>
+      <input id="inp-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')authSubmit()">
+    </div>
+    <button class="btn" style="width:100%;padding:14px" onclick="authSubmit()" id="auth-btn">Кіру</button>
+    <p style="text-align:center;margin-top:16px;color:#8b6e52;font-size:13px">Admin: <b>admin@beauty.kz</b> / <b>admin123</b></p>
+  </div>
+</div>
+
+<!-- HOME PAGE -->
+
+<div id="page-home" class="page">
+  <div class="hero" style="margin:-40px -24px 40px">
+    <div class="hero-glow"></div>
+    <div style="font-size:44px;margin-bottom:14px">🍎</div>
+    <h1 class="playfair" style="color:#f0d080;font-size:48px;font-style:italic;letter-spacing:3px;margin-bottom:14px;line-height:1.2">Сұлулық — бұл өнер</h1>
+    <p style="color:#c9a84c;font-size:16px;letter-spacing:4px;text-transform:uppercase;margin-bottom:32px">Премиум косметика дүкені</p>
+    <div style="color:#c9a84c;font-size:18px;margin-bottom:36px">✦ ✦ ✦</div>
+    <button class="btn" style="font-size:14px;padding:15px 46px;letter-spacing:3px" onclick="goPage('products')">Каталогты ашу</button>
+  </div>
+  <div class="stats-bar" style="margin:-40px -24px 40px">
+    <div class="stats-inner">
+      <div style="text-align:center"><div class="playfair" style="font-size:24px;font-style:italic">500+</div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#5d3a00">Өнім</div></div>
+      <div style="text-align:center"><div class="playfair" style="font-size:24px;font-style:italic">50K+</div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#5d3a00">Клиент</div></div>
+      <div style="text-align:center"><div class="playfair" style="font-size:24px;font-style:italic">100%</div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#5d3a00">Сапа</div></div>
+      <div style="text-align:center"><div class="playfair" style="font-size:24px;font-style:italic">2 күн</div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#5d3a00">Жеткізу</div></div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-bottom:36px">
+    <p style="color:#c9a84c;letter-spacing:4px;font-size:11px;text-transform:uppercase">Таңдаулы өнімдер</p>
+    <h2 class="playfair" style="font-size:32px;font-style:italic;margin-top:8px">Bestsellers</h2>
+    <div class="divider">✦</div>
+  </div>
+  <div class="products-grid" id="home-products"></div>
+  <div style="text-align:center;margin-top:36px">
+    <button class="btn-out" onclick="goPage('products')">Барлық өнімдерді көру</button>
+  </div>
+</div>
+
+<!-- PRODUCTS PAGE -->
+
+<div id="page-products" class="page">
+  <div style="text-align:center;margin-bottom:36px">
+    <p style="color:#c9a84c;letter-spacing:4px;font-size:11px;text-transform:uppercase">Каталог</p>
+    <h2 class="playfair" style="font-size:32px;font-style:italic;margin-top:8px">Барлық өнімдер</h2>
+    <div class="divider">✦</div>
+  </div>
+  <div style="display:flex;gap:14px;margin-bottom:28px;flex-wrap:wrap;align-items:center">
+    <input id="search-inp" placeholder="🔍 Іздеу..." oninput="filterProducts()" style="flex:1;min-width:200px">
+    <div id="cat-filters" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  </div>
+  <div class="products-grid" id="all-products"></div>
+</div>
+
+<!-- CART PAGE -->
+
+<div id="page-cart" class="page">
+  <div style="text-align:center;margin-bottom:36px">
+    <h2 class="playfair" style="font-size:32px;font-style:italic">🛒 Қоржын</h2>
+    <div class="divider">✦</div>
+  </div>
+  <div id="cart-content"></div>
+</div>
+
+<!-- ORDERS PAGE -->
+
+<div id="page-orders" class="page">
+  <div style="text-align:center;margin-bottom:36px">
+    <h2 class="playfair" style="font-size:32px;font-style:italic">Тапсырыстарым</h2>
+    <div class="divider">✦</div>
+  </div>
+  <div id="orders-content"></div>
+</div>
+
+<!-- PROFILE PAGE -->
+
+<div id="page-profile" class="page">
+  <div style="text-align:center;margin-bottom:36px">
+    <h2 class="playfair" style="font-size:32px;font-style:italic">Профиль</h2>
+    <div class="divider">✦</div>
+  </div>
+  <div id="profile-content"></div>
+</div>
+
+<!-- ADMIN PAGE -->
+
+<div id="page-admin" class="page">
+  <div style="text-align:center;margin-bottom:36px">
+    <h2 class="playfair" style="font-size:32px;font-style:italic">Админ панель</h2>
+    <div class="divider">✦</div>
+  </div>
+  <div style="display:flex;gap:0;margin-bottom:28px;border:1px solid #c9a84c44;border-radius:2px;overflow:hidden;width:fit-content">
+    <button onclick="adminTab('products')" id="atab-products" style="padding:11px 22px;background:#1a0a00;color:#f0d080;border:none;font-family:'Cormorant Garamond',serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Өнімдер</button>
+    <button onclick="adminTab('users')" id="atab-users" style="padding:11px 22px;background:transparent;color:#8b6e52;border:none;font-family:'Cormorant Garamond',serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Пайдаланушылар</button>
+    <button onclick="adminTab('aorders')" id="atab-aorders" style="padding:11px 22px;background:transparent;color:#8b6e52;border:none;font-family:'Cormorant Garamond',serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Тапсырыстар</button>
+  </div>
+  <div id="admin-content"></div>
+</div>
+
+<!-- PRODUCT MODAL -->
+
+<div id="prod-modal" class="modal" style="display:none">
+  <div class="modal-box">
+    <button onclick="closeModal()" style="position:absolute;top:14px;right:14px;background:transparent;border:none;font-size:18px;cursor:pointer;color:#8b6e52">✕</button>
+    <h3 class="playfair" id="modal-title" style="font-size:20px;font-style:italic;margin-bottom:22px">Өнім қосу</h3>
+    <input type="hidden" id="modal-id">
+    <div style="display:flex;flex-direction:column;gap:13px">
+      <div><label>Атауы *</label><input id="m-name" placeholder="Өнім атауы"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+        <div><label>Санат</label><input id="m-cat" placeholder="Ерін, Күтім..."></div>
+        <div><label>Бренд</label><input id="m-brand" placeholder="MAC, L'Oreal..."></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+        <div><label>Баға (₸) *</label><input id="m-price" type="number" placeholder="12500"></div>
+        <div><label>Қор</label><input id="m-stock" type="number" placeholder="50"></div>
+      </div>
+      <div><label>Сипаттама</label><textarea id="m-desc" rows="3" placeholder="Өнім туралы..." style="width:100%;padding:12px 16px;border:1px solid #e8d5c0;border-radius:2px;background:#fffcf8;font-family:'Cormorant Garamond',serif;font-size:15px;color:#1a0a00;outline:none;resize:vertical"></textarea></div>
+      <div>
+        <label>Иконка</label>
+        <div id="emoji-picker" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+      <button class="btn" style="width:100%;padding:13px;margin-top:6px" onclick="saveProduct()">Сақтау</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════ DATABASE ═══════════
+const DB = {
+  users: [
+    {id:1,name:'Айгерім Қасымова',email:'admin@beauty.kz',password:'admin123',role:'admin',createdAt:'2024-01-15'},
+    {id:2,name:'Дина Сейткали',email:'dina@mail.kz',password:'pass123',role:'user',createdAt:'2024-02-20'}
+  ],
+  products: [
+    {id:1,name:'Velvet Rose Помада',category:'Ерін',brand:'MAC',price:12500,stock:45,rating:4.8,description:'Бархат текстурасы, 24 сағат',image:'💄'},
+    {id:2,name:'Glow Serum 30ml',category:'Күтім',brand:'The Ordinary',price:8900,stock:32,rating:4.6,description:'Гиалурон қышқылы + Ниацинамид',image:'✨'},
+    {id:3,name:'Nude Foundation',category:'Тренажер',brand:'Charlotte Tilbury',price:24000,stock:18,rating:4.9,description:'Табиғи покрытие, 30 реңк',image:'🌟'},
+    {id:4,name:'Sky High Тушь',category:'Көз',brand:'Maybelline',price:5500,stock:67,rating:4.7,description:'Максималды ұзындық эффекті',image:'👁'},
+    {id:5,name:'Brow Definer',category:'Қас',brand:'Anastasia',price:9800,stock:28,rating:4.5,description:'0.9мм ультра жіңішке қалам',image:'🪄'},
+    {id:6,name:'Cloud Powder',category:'Пудра',brand:'Rare Beauty',price:15000,stock:22,rating:4.8,description:'Жеңіл, матталған эффект',image:'☁️'}
+  ],
+  orders: [
+    {id:1,userId:2,productId:1,quantity:2,total:25000,status:'Жеткізілді',date:'2024-02-01'},
+    {id:2,userId:2,productId:3,quantity:1,total:24000,status:'Жолда',date:'2024-02-10'}
+  ],
+  nextPid:7, nextOid:3, nextUid:3
+};
+
+let currentUser = null;
+let cart = [];
+let selectedEmoji = '💄';
+let currentAdminTab = 'products';
+let filterCat = 'Барлығы';
+
+// ═══════════ AUTH ═══════════
+let authMode = 'login';
+function switchTab(mode) {
+  authMode = mode;
+  document.getElementById('form-name').style.display = mode==='register'?'block':'none';
+  document.getElementById('auth-btn').textContent = mode==='login'?'Кіру':'Тіркелу';
+  document.getElementById('tab-login').style.background = mode==='login'?'#1a0a00':'transparent';
+  document.getElementById('tab-login').style.color = mode==='login'?'#f0d080':'#8b6e52';
+  document.getElementById('tab-register').style.background = mode==='register'?'#1a0a00':'transparent';
+  document.getElementById('tab-register').style.color = mode==='register'?'#f0d080':'#8b6e52';
+}
+
+function authSubmit() {
+  const email = document.getElementById('inp-email').value.trim();
+  const pass = document.getElementById('inp-pass').value;
+  if (authMode === 'login') {
+    const user = DB.users.find(u => u.email===email && u.password===pass);
+    if (!user) return toast('Email немесе пароль қате!','err');
+    currentUser = user;
+    showApp();
+    toast(`Қош келдіңіз, ${user.name}! 💖`);
+  } else {
+    const name = document.getElementById('inp-name').value.trim();
+    if (!name || !email || !pass) return toast('Барлық өрістерді толтырыңыз!','err');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast('Email форматы дұрыс емес!','err');
+    if (pass.length < 6) return toast('Пароль кемінде 6 таңба!','err');
+    if (DB.users.find(u=>u.email===email)) return toast('Бұл email тіркелген!','err');
+    const newUser = {id:DB.nextUid++,name,email,password:pass,role:'user',createdAt:new Date().toISOString().split('T')[0]};
+    DB.users.push(newUser);
+    currentUser = newUser;
+    showApp();
+    toast('Тіркелдіңіз! Қош келдіңіз 🌸');
+  }
+}
+
+function showApp() {
+  document.getElementById('auth-page').style.display = 'none';
+  document.getElementById('navbar').style.display = 'block';
+  if (currentUser.role==='admin') document.getElementById('nl-admin').style.display='inline';
+  goPage('home');
+}
+
+function logout() {
+  currentUser = null; cart = [];
+  document.getElementById('auth-page').style.display = 'flex';
+  document.getElementById('navbar').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  toast('Шықтыңыз 👋');
+}
+
+// ═══════════ NAVIGATION ═══════════
+function goPage(pg) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+  document.getElementById('page-'+pg).classList.add('active');
+  const nl = document.getElementById('nl-'+pg);
+  if (nl) nl.classList.add('active');
+  if (pg==='home') renderHome();
+  if (pg==='products') renderProducts();
+  if (pg==='cart') renderCart();
+  if (pg==='orders') renderOrders();
+  if (pg==='profile') renderProfile();
+  if (pg==='admin') renderAdmin();
+}
+
+// ═══════════ PRODUCT CARD ═══════════
+function productCard(p) {
+  const stars = '★★★★★'.split('').map((s,i)=>`<span class="star" style="opacity:${i<Math.round(p.rating)?1:.25}">${s}</span>`).join('');
+  return `<div class="card product-card">
+    <div style="font-size:48px;margin-bottom:10px">${p.image}</div>
+    <span class="tag">${p.category}</span>
+    <h3 class="playfair" style="font-size:17px;font-style:italic;margin:10px 0 4px">${p.name}</h3>
+    <p style="color:#8b6e52;font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">${p.brand}</p>
+    <p style="color:#6b5040;font-size:14px;margin-bottom:10px">${p.description}</p>
+    <div style="display:flex;justify-content:center;gap:2px;margin-bottom:12px">${stars}<span style="margin-left:6px;color:#8b6e52;font-size:13px">${p.rating}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+      <span class="playfair" style="font-size:19px;color:#c9a84c;font-style:italic">${p.price.toLocaleString()} ₸</span>
+      <button class="btn" style="padding:7px 16px;font-size:11px" onclick="addToCart(${p.id})">+ Қосу</button>
+    </div>
+  </div>`;
+}
+
+// ═══════════ HOME ═══════════
+function renderHome() {
+  document.getElementById('home-products').innerHTML = DB.products.slice(0,3).map(productCard).join('');
+}
+
+// ═══════════ PRODUCTS ═══════════
+function renderProducts() {
+  const cats = ['Барлығы',...new Set(DB.products.map(p=>p.category))];
+  document.getElementById('cat-filters').innerHTML = cats.map(c=>`<button onclick="setCat('${c}')" style="padding:7px 14px;border-radius:2px;border:1px solid #c9a84c;background:${filterCat===c?'#1a0a00':'transparent'};color:${filterCat===c?'#f0d080':'#8b6e52'};font-family:'Cormorant Garamond',serif;font-size:12px;letter-spacing:1px;cursor:pointer;transition:all .3s">${c}</button>`).join('');
+  filterProducts();
+}
+function setCat(c){filterCat=c;renderProducts()}
+function filterProducts() {
+  const q = (document.getElementById('search-inp')?.value||'').toLowerCase();
+  const filtered = DB.products.filter(p=>(filterCat==='Барлығы'||p.category===filterCat)&&(p.name.toLowerCase().includes(q)||p.brand.toLowerCase().includes(q)));
+  document.getElementById('all-products').innerHTML = filtered.length ? filtered.map(productCard).join('') : '<p style="color:#8b6e52;text-align:center;font-size:18px;padding:60px 0;grid-column:1/-1">Өнім табылмады...</p>';
+}
+
+// ═══════════ CART ═══════════
+function addToCart(id) {
+  const p = DB.products.find(x=>x.id===id);
+  if (!p) return;
+  const ex = cart.find(i=>i.id===id);
+  if (ex) ex.qty++;
+  else cart.push({...p,qty:1});
+  updateCartCount();
+  toast(`${p.name} қоржынға қосылды! 🛒`);
+}
+function updateCartCount() {
+  const total = cart.reduce((s,i)=>s+i.qty,0);
+  const el = document.getElementById('cart-count');
+  el.textContent = total;
+  el.style.display = total>0?'flex':'none';
+}
+function renderCart() {
+  const el = document.getElementById('cart-content');
+  if (!cart.length) { el.innerHTML='<div style="text-align:center;padding:80px 0"><div style="font-size:56px;margin-bottom:14px">🛒</div><p style="color:#8b6e52;font-size:20px">Қоржын бос</p></div>'; return; }
+  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
+  el.innerHTML=`<div class="card" style="overflow:hidden;margin-bottom:22px">
+    <table><thead><tr><th>Өнім</th><th>Баға</th><th>Саны</th><th>Жиыны</th><th></th></tr></thead>
+    <tbody>${cart.map(item=>`<tr>
+      <td><span style="font-size:22px;margin-right:8px">${item.image}</span>${item.name}</td>
+      <td class="playfair" style="color:#c9a84c;font-style:italic">${item.price.toLocaleString()} ₸</td>
+      <td><input type="number" value="${item.qty}" min="1" onchange="changeQty(${item.id},this.value)" style="width:65px"></td>
+      <td class="playfair" style="color:#c9a84c;font-style:italic">${(item.price*item.qty).toLocaleString()} ₸</td>
+      <td><button class="btn-danger" onclick="removeCart(${item.id})">✕</button></td>
+    </tr>`).join('')}</tbody></table></div>
+  <div style="text-align:right">
+    <p class="playfair" style="font-size:22px;font-style:italic;margin-bottom:14px">Жиыны: <span style="color:#c9a84c">${total.toLocaleString()} ₸</span></p>
+    <button class="btn" style="padding:13px 44px" onclick="placeOrder()">Тапсырыс беру</button>
+  </div>`;
+}
+function removeCart(id){cart=cart.filter(i=>i.id!==id);updateCartCount();renderCart()}
+function changeQty(id,v){const i=cart.find(x=>x.id===id);if(i)i.qty=Math.max(1,+v);renderCart()}
+function placeOrder() {
+  if (!currentUser||!cart.length) return;
+  cart.forEach(item=>{
+    DB.orders.push({id:DB.nextOid++,userId:currentUser.id,productId:item.id,quantity:item.qty,total:item.price*item.qty,status:'Өңделуде',date:new Date().toISOString().split('T')[0]});
+  });
+  cart=[];updateCartCount();renderCart();
+  toast('Тапсырыс берілді! 🎉');
+}
+
+// ═══════════ ORDERS ═══════════
+function renderOrders() {
+  const myOrders = DB.orders.filter(o=>o.userId===currentUser.id);
+  const el = document.getElementById('orders-content');
+  if (!myOrders.length){el.innerHTML='<div style="text-align:center;padding:80px 0"><div style="font-size:56px;margin-bottom:14px">📦</div><p style="color:#8b6e52;font-size:20px">Тапсырыс жоқ</p></div>';return}
+  const sc={'Жеткізілді':'#27ae60','Жолда':'#c9a84c','Өңделуде':'#8b6e52'};
+  el.innerHTML=`<div class="card" style="overflow:hidden"><table><thead><tr><th>№</th><th>Өнім</th><th>Саны</th><th>Жиыны</th><th>Күні</th><th>Мәртебе</th></tr></thead><tbody>${myOrders.map(o=>{const p=DB.products.find(x=>x.id===o.productId);return`<tr><td style="color:#c9a84c">#${o.id}</td><td>${p?`<span style="font-size:20px;margin-right:6px">${p.image}</span>${p.name}`:'—'}</td><td>${o.quantity}</td><td class="playfair" style="color:#c9a84c;font-style:italic">${o.total.toLocaleString()} ₸</td><td style="color:#8b6e52">${o.date}</td><td style="color:${sc[o.status]||'#8b6e52'}">● ${o.status}</td></tr>`}).join('')}</tbody></table></div>`;
+}
+
+// ═══════════ PROFILE ═══════════
+function renderProfile() {
+  const myOrders = DB.orders.filter(o=>o.userId===currentUser.id);
+  document.getElementById('profile-content').innerHTML=`<div class="card" style="padding:38px;text-align:center;max-width:600px;margin:0 auto">
+    <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#e8c87a);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 18px;border:3px solid #f0d080">${currentUser.name[0]}</div>
+    <h3 class="playfair" style="font-size:22px;font-style:italic">${currentUser.name}</h3>
+    <p style="color:#8b6e52;letter-spacing:2px;font-size:12px;text-transform:uppercase;margin-top:4px">${currentUser.email}</p>
+    ${currentUser.role==='admin'?'<span class="badge" style="margin-top:10px;display:inline-block">ADMIN</span>':''}
+    <div class="divider" style="margin:22px 0">✦</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <div style="background:#fdf6f0;padding:14px;border:1px solid #f0e0d0"><div class="playfair" style="font-size:20px;color:#c9a84c;font-style:italic">${myOrders.length}</div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8b6e52;margin-top:4px">Тапсырыстар</div></div>
+      <div style="background:#fdf6f0;padding:14px;border:1px solid #f0e0d0"><div class="playfair" style="font-size:20px;color:#c9a84c;font-style:italic">${currentUser.createdAt}</div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8b6e52;margin-top:4px">Мүше күні</div></div>
+      <div style="background:#fdf6f0;padding:14px;border:1px solid #f0e0d0"><div class="playfair" style="font-size:20px;color:#c9a84c;font-style:italic">${currentUser.role==='admin'?'VIP':'Member'}</div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#8b6e52;margin-top:4px">Статус</div></div>
+    </div>
+  </div>`;
+}
+
+// ═══════════ ADMIN ═══════════
+function adminTab(t) {
+  currentAdminTab=t;
+  ['products','users','aorders'].forEach(x=>{
+    const btn=document.getElementById('atab-'+x);
+    btn.style.background=x===t?'#1a0a00':'transparent';
+    btn.style.color=x===t?'#f0d080':'#8b6e52';
+  });
+  renderAdmin();
+}
+function renderAdmin() {
+  const el=document.getElementById('admin-content');
+  if(currentAdminTab==='products'){
+    el.innerHTML=`<div style="display:flex;justify-content:flex-end;margin-bottom:16px"><button class="btn" onclick="openModal()">+ Өнім қосу</button></div>
+    <div class="card" style="overflow:hidden"><table><thead><tr><th>Өнім</th><th>Санат</th><th>Бренд</th><th>Баға</th><th>Қор</th><th>Рейтинг</th><th>Әрекет</th></tr></thead>
+    <tbody>${DB.products.map(p=>`<tr>
+      <td><span style="font-size:20px;margin-right:8px">${p.image}</span>${p.name}</td>
+      <td><span class="tag">${p.category}</span></td>
+      <td style="color:#8b6e52">${p.brand}</td>
+      <td class="playfair" style="color:#c9a84c;font-style:italic">${p.price.toLocaleString()} ₸</td>
+      <td>${p.stock}</td>
+      <td><span class="star">★</span> ${p.rating}</td>
+      <td style="display:flex;gap:8px">
+        <button class="btn-out" style="padding:5px 12px;font-size:11px" onclick="openModal(${p.id})">Өзгерту</button>
+        <button class="btn-danger" onclick="deleteProduct(${p.id})">Өшіру</button>
+      </td>
+    </tr>`).join('')}</tbody></table></div>`;
+  } else if(currentAdminTab==='users'){
+    el.innerHTML=`<div class="card" style="overflow:hidden"><table><thead><tr><th>ID</th><th>Аты-жөні</th><th>Email</th><th>Рөл</th><th>Тіркелген</th></tr></thead>
+    <tbody>${DB.users.map(u=>`<tr>
+      <td style="color:#c9a84c">#${u.id}</td>
+      <td class="playfair" style="font-style:italic">${u.name}</td>
+      <td style="color:#8b6e52">${u.email}</td>
+      <td><span class="badge" style="background:${u.role==='admin'?'#1a0a00':'#f5e6d0'};color:${u.role==='admin'?'#f0d080':'#8b5e3c'}">${u.role==='admin'?'ADMIN':'USER'}</span></td>
+      <td style="color:#8b6e52">${u.createdAt}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+  } else {
+    el.innerHTML=`<div class="card" style="overflow:hidden"><table><thead><tr><th>№</th><th>User ID</th><th>Product ID</th><th>Саны</th><th>Жиыны</th><th>Мәртебе</th><th>Күні</th></tr></thead>
+    <tbody>${DB.orders.map(o=>`<tr>
+      <td style="color:#c9a84c">#${o.id}</td><td>User #${o.userId}</td><td>Product #${o.productId}</td>
+      <td>${o.quantity}</td>
+      <td class="playfair" style="color:#c9a84c;font-style:italic">${o.total.toLocaleString()} ₸</td>
+      <td style="color:${o.status==='Жеткізілді'?'#27ae60':'#c9a84c'}">● ${o.status}</td>
+      <td style="color:#8b6e52">${o.date}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+  }
+}
+
+// ═══════════ PRODUCT MODAL ═══════════
+const EMOJIS=['💄','✨','🌟','👁','🪄','☁️','🌸','💅','🧴','💋','🪷','🌺'];
+function openModal(id) {
+  document.getElementById('prod-modal').style.display='flex';
+  document.getElementById('modal-title').textContent=id?'Өнімді өзгерту':'Өнім қосу';
+  document.getElementById('emoji-picker').innerHTML=EMOJIS.map(e=>`<button onclick="selEmoji('${e}')" id="em-${e}" style="font-size:20px;padding:7px;background:${selectedEmoji===e?'#c9a84c22':'transparent'};border:${selectedEmoji===e?'2px solid #c9a84c':'1px solid #e8d5c0'};border-radius:4px;cursor:pointer">${e}</button>`).join('');
+  if(id){
+    const p=DB.products.find(x=>x.id===id);
+    document.getElementById('modal-id').value=id;
+    document.getElementById('m-name').value=p.name;
+    document.getElementById('m-cat').value=p.category;
+    document.getElementById('m-brand').value=p.brand;
+    document.getElementById('m-price').value=p.price;
+    document.getElementById('m-stock').value=p.stock;
+    document.getElementById('m-desc').value=p.description;
+    selectedEmoji=p.image;
+  } else {
+    document.getElementById('modal-id').value='';
+    ['m-name','m-cat','m-brand','m-price','m-stock','m-desc'].forEach(x=>document.getElementById(x).value='');
+    selectedEmoji='💄';
+  }
+}
+function selEmoji(e){selectedEmoji=e;openModal(document.getElementById('modal-id').value||undefined)}
+function closeModal(){document.getElementById('prod-modal').style.display='none'}
+function saveProduct() {
+  const name=document.getElementById('m-name').value.trim();
+  const price=+document.getElementById('m-price').value;
+  if(!name||!price)return toast('Атауы мен бағасы міндетті!','err');
+  const data={name,category:document.getElementById('m-cat').value,brand:document.getElementById('m-brand').value,price,stock:+document.getElementById('m-stock').value||0,description:document.getElementById('m-desc').value,image:selectedEmoji};
+  const id=+document.getElementById('modal-id').value;
+  if(id){const i=DB.products.findIndex(x=>x.id===id);DB.products[i]={...DB.products[i],...data};toast('Өнім жаңартылды! ✏️')}
+  else{DB.products.push({...data,id:DB.nextPid++,rating:4.5,createdAt:new Date().toISOString().split('T')[0]});toast('Өнім қосылды! ✅')}
+  closeModal();renderAdmin();
+}
+function deleteProduct(id){DB.products=DB.products.filter(x=>x.id!==id);toast('Өнім өшірілді!','err');renderAdmin()}
+
+// ═══════════ TOAST ═══════════
+function toast(msg,type='ok'){
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+</script>
+
+</body>
+</html>
